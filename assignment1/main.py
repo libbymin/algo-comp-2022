@@ -26,6 +26,7 @@ def compute_score(user1, user2):
             compat += 1
             
     compat = compat/2
+    # rip i didn't feel like doing more... my bad :)
     return compat
 
 
