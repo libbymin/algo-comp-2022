@@ -2,26 +2,86 @@ import numpy as np
 from typing import List, Tuple
 
 def run_matching(scores: List[List], gender_id: List, gender_pref: List) -> List[Tuple]:
-    """
-    TODO: Implement Gale-Shapley stable matching!
-    :param scores: raw N x N matrix of compatibility scores. Use this to derive a preference rankings.
-    :param gender_id: list of N gender identities (Male, Female, Non-binary) corresponding to each user
-    :param gender_pref: list of N gender preferences (Men, Women, Bisexual) corresponding to each user
-    :return: `matches`, a List of (Proposer, Acceptor) Tuples representing monogamous matches
+    proposers_indexes = []
+    receivers_indexes = []
+    
+    # split into proposers and recievers
+    for i in range(len(gender_id)):
+        if i < len(gender_id)/2:
+            receivers_indexes.append(i)
+        else:
+            proposers_indexes.append(i)
+    
+    # take care of pairs that shouldn't be coupled this is probs not the optimal way to do this but oh well
+    for i in proposers_indexes:
+        for j in receivers_indexes:
+            if gender_id[i] == "Male" and gender_pref[i] == "Women":
+                if gender_id[j] == "Male" or gender_pref[j] == "Women":
+                    scores[i][j] = 0
+                    scores[j][i] = 0
+            elif gender_id[i] == "Female" and gender_pref[i] == "Men":
+                if gender_id[j] == "Female" or gender_pref[j] == "Men":
+                    scores[i][j] = 0
+                    scores[j][i] = 0
+            elif gender_id[i] == "Male" and gender_pref[i] == "Men":
+                if gender_id[j] == "Female" or gender_pref[j] == "Women":
+                    scores[i][j] = 0
+                    scores[j][i] = 0
+            elif gender_id[i] == "Female" and gender_pref[i] == "Women":
+                if gender_id[j] == "Male" or gender_pref[j] == "Men":
+                    scores[i][j] = 0
+                    scores[j][i] = 0
+            elif gender_id[i] == "Female" and gender_pref[j] == "Men":
+                scores[i][j] = 0
+                scores[j][i] = 0
+            elif gender_id[i] == "Male" and gender_pref[j] == "Women":
+                scores[i][j] = 0
+                scores[j][i] = 0
+            elif gender_pref[i] == "Men" and gender_id[j] == "Female":
+                scores[i][j] = 0
+                scores[j][i] = 0
+            elif gender_pref[i] == "Women" and gender_id[j] == "Male":
+                scores[i][j] = 0
+                scores[j][i] = 0
+                
+    unmatched_proposers = []
+    for i in range(len(proposers_indexes)):
+        unmatched_proposers.append(proposers_indexes[i])
+    unmatched_receivers = []
+    for i in range(len(receivers_indexes)):
+        unmatched_receivers.append(receivers_indexes[i])
+        
+    test_matches = []
+#ahhh forgot commenting was a thing whoops anyways i think this does it 
+    while unmatched_proposers:
+        preferences = []
+        for i in receivers_indexes:
+            preferences.append(scores[unmatched_proposers[0]][i])
+            
+        sort_order = np.argsort(preferences)
 
-    Some Guiding Questions/Hints:
-        - This is not the standard Men proposing & Women receiving scheme Gale-Shapley is introduced as
-        - Instead, to account for various gender identity/preference combinations, it would be better to choose a random half of users to act as "Men" (proposers) and the other half as "Women" (receivers)
-            - From there, you can construct your two preferences lists (as seen in the canonical Gale-Shapley algorithm; one for each half of users
-        - Before doing so, it is worth addressing incompatible gender identity/preference combinations (e.g. gay men should not be matched with straight men).
-            - One easy way of doing this is setting the scores of such combinations to be 0
-            - Think carefully of all the various (Proposer-Preference:Receiver-Gender) combinations and whether they make sense as a match
-        - How will you keep track of the Proposers who get "freed" up from matches?
-        - We know that Receivers never become unmatched in the algorithm.
-            - What data structure can you use to take advantage of this fact when forming your matches?
-        - This is by no means an exhaustive list, feel free to reach out to us for more help!
-    """
-    matches = [()]
+        for i in sort_order:
+            if i in unmatched_receivers:
+                test_matches.append((i, unmatched_proposers[0]))
+                unmatched_receivers.pop(unmatched_receivers.index(i))
+                break
+            index_to_beat = -1
+            for j in range(len(test_matches)):
+                if test_matches[j][0] == i:
+                    index_to_beat = test_matches[j][1]
+                    break
+                    
+            score_to_beat = scores[i][index_to_beat]
+                        
+            if preferences[i] > score_to_beat:
+                test_matches.append((i, unmatched_proposers[0]))
+                print(unmatched_receivers, i)
+                unmatched_receivers.pop(unmatched_receivers.index(i))
+                test_matches.pop(test_matches.index(i, index_to_beat))
+                unmatched_proposers.append(index_to_beat)
+        unmatched_proposers.pop(0)
+    
+    matches = test_matches
     return matches
 
 if __name__ == "__main__":
